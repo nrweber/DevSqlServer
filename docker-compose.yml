@@ -1,0 +1,40 @@
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    user: root
+    environment:
+        - ACCEPT_EULA=Y
+        - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
+    ports:
+        - 1433:1433
+    volumes:
+        - sqlserver-data:/var/opt/mssql/data
+    restart: always
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${MSSQL_SA_PASSWORD} -Q 'SELECT 1' || exit 1
+      interval: 5s
+      retries: 20
+      timeout: 5s
+
+
+
+  databasesetup:
+    image: databasesetup
+    environment:
+      SQLCMDUSER: sa
+      SQLCMDPASSWORD: ${MSSQL_SA_PASSWORD}
+      DB_SERVER_NAME: sqlserver
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_USER_PASSWORD: ${DB_USER_PASSWORD}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    build:
+      context: DatabaseSetup
+      dockerfile: Dockerfile    
+
+
+volumes:
+  sqlserver-data:
